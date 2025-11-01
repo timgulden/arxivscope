@@ -1,0 +1,46 @@
+    table_name    |         column_name          | data_type | is_nullable 
+------------------+------------------------------+-----------+-------------
+ extpub_metadata  | doctrove_paper_id            | uuid      | NO
+ extpub_metadata  | extpub_source_id             | text      | YES
+ extpub_metadata  | extpub_title                 | text      | YES
+ extpub_metadata  | extpub_abstract              | text      | YES
+ extpub_metadata  | extpub_authors               | text      | YES
+ extpub_metadata  | extpub_publication_date      | text      | YES
+ extpub_metadata  | extpub_source                | text      | YES
+ extpub_metadata  | extpub_doi                   | text      | YES
+ extpub_metadata  | extpub_links                 | text      | YES
+ extpub_metadata  | extpub_document_access_info  | text      | YES
+ extpub_metadata  | extpub_library_record_info   | text      | YES
+ extpub_metadata  | extpub_publication_id        | text      | YES
+ extpub_metadata  | extpub_program               | text      | YES
+ extpub_metadata  | extpub_classification_level  | text      | YES
+ extpub_metadata  | extpub_funding_info          | text      | YES
+ extpub_metadata  | extpub_subject_headings      | text      | YES
+ extpub_metadata  | extpub_corporate_authors     | text      | YES
+ extpub_metadata  | extpub_publication_type      | text      | YES
+ extpub_metadata  | extpub_quality_score         | text      | YES
+ extpub_metadata  | extpub_marc_id               | text      | YES
+ extpub_metadata  | extpub_processing_date       | text      | YES
+ randpub_metadata | doctrove_paper_id            | uuid      | NO
+ randpub_metadata | randpub_source_id            | text      | YES
+ randpub_metadata | randpub_title                | text      | YES
+ randpub_metadata | randpub_abstract             | text      | YES
+ randpub_metadata | randpub_authors              | text      | YES
+ randpub_metadata | randpub_publication_date     | text      | YES
+ randpub_metadata | randpub_source               | text      | YES
+ randpub_metadata | randpub_doi                  | text      | YES
+ randpub_metadata | randpub_links                | text      | YES
+ randpub_metadata | randpub_document_access_info | text      | YES
+ randpub_metadata | randpub_library_record_info  | text      | YES
+ randpub_metadata | randpub_publication_id       | text      | YES
+ randpub_metadata | randpub_program              | text      | YES
+ randpub_metadata | randpub_classification_level | text      | YES
+ randpub_metadata | randpub_funding_info         | text      | YES
+ randpub_metadata | randpub_subject_headings     | text      | YES
+ randpub_metadata | randpub_corporate_authors    | text      | YES
+ randpub_metadata | randpub_publication_type     | text      | YES
+ randpub_metadata | randpub_quality_score        | text      | YES
+ randpub_metadata | randpub_marc_id              | text      | YES
+ randpub_metadata | randpub_processing_date      | text      | YES
+(42 rows)
+

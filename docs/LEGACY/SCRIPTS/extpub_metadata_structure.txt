@@ -1,0 +1,30 @@
+                                              Table "public.extpub_metadata"
+           Column            | Type | Collation | Nullable | Default | Storage  | Compression | Stats target | Description 
+-----------------------------+------+-----------+----------+---------+----------+-------------+--------------+-------------
+ doctrove_paper_id           | uuid |           | not null |         | plain    |             |              | 
+ extpub_source_id            | text |           |          |         | extended |             |              | 
+ extpub_title                | text |           |          |         | extended |             |              | 
+ extpub_abstract             | text |           |          |         | extended |             |              | 
+ extpub_authors              | text |           |          |         | extended |             |              | 
+ extpub_publication_date     | text |           |          |         | extended |             |              | 
+ extpub_source               | text |           |          |         | extended |             |              | 
+ extpub_doi                  | text |           |          |         | extended |             |              | 
+ extpub_links                | text |           |          |         | extended |             |              | 
+ extpub_document_access_info | text |           |          |         | extended |             |              | 
+ extpub_library_record_info  | text |           |          |         | extended |             |              | 
+ extpub_publication_id       | text |           |          |         | extended |             |              | 
+ extpub_program              | text |           |          |         | extended |             |              | 
+ extpub_classification_level | text |           |          |         | extended |             |              | 
+ extpub_funding_info         | text |           |          |         | extended |             |              | 
+ extpub_subject_headings     | text |           |          |         | extended |             |              | 
+ extpub_corporate_authors    | text |           |          |         | extended |             |              | 
+ extpub_publication_type     | text |           |          |         | extended |             |              | 
+ extpub_quality_score        | text |           |          |         | extended |             |              | 
+ extpub_marc_id              | text |           |          |         | extended |             |              | 
+ extpub_processing_date      | text |           |          |         | extended |             |              | 
+Indexes:
+    "extpub_metadata_pkey" PRIMARY KEY, btree (doctrove_paper_id)
+Foreign-key constraints:
+    "extpub_metadata_doctrove_paper_id_fkey" FOREIGN KEY (doctrove_paper_id) REFERENCES doctrove_papers(doctrove_paper_id)
+Access method: heap
+

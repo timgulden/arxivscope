@@ -1,0 +1,15 @@
+2D Progress Report - 2025-09-02T04:19:32.152069
+==================================================
+
+Total Papers: 17,870,457
+2D Embeddings: 947,000 (5.3%)
+Papers Needing 2D: 16,923,457
+Current Batch: 947
+Method: 2d_processor_logs
+
+Performance:
+Average Rate: 25.0 papers/sec
+Average Rate: 90180.0 papers/hour
+
+Rate: 90000.0 papers/hour
+Time to completion: 7.8 days

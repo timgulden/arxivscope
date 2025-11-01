@@ -1,0 +1,17 @@
+dash
+dash-bootstrap-components
+dash-extensions
+dash[diskcache]
+diskcache
+numpy
+pandas
+plotly
+pymarc
+python-dotenv>=1.0.0
+requests
+scikit-learn
+scipy
+shapely
+tqdm
+umap
+umap-learn

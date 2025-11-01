@@ -1,0 +1,14 @@
+Complete Embedding Progress Report - 2025-09-02T04:20:27.191947
+============================================================
+
+Total Papers: 17,870,457
+1D Embeddings: 4,537,998 (25.4%)
+2D Embeddings: 949,000 (5.3%)
+Papers Needing 1D: 13,332,459
+Papers Needing 2D: 16,921,457
+
+Performance:
+1D Rate: ~81K papers/hour (from previous analysis)
+2D Rate: 119700.0 papers/hour
+
+Bottleneck: 2D

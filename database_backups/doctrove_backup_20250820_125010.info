@@ -1,0 +1,30 @@
+Database Backup Information
+==========================
+
+Backup Date: Wed Aug 20 12:54:25 PDT 2025
+Backup File: doctrove_backup_20250820_125010.sql
+Full Path: /Users/tgulden/Documents/ArXivScope/arxivscope-back-end/./database_backups/doctrove_backup_20250820_125010.sql
+
+Database Details:
+- Host: localhost
+- Port: 5432
+- Database: doctrove
+- User: tgulden
+
+Migration Context:
+- Migration ID: SCHEMA_STANDARDIZATION_001
+- Purpose: Standardize field naming across metadata tables
+- Status: Pre-migration backup
+
+Backup Commands Used:
+- pg_dump -h localhost -p 5432 -U tgulden -d doctrove --format=custom
+
+Restore Commands:
+- pg_restore -h <host> -p <port> -U <user> -d <database> doctrove_backup_20250820_125010.sql
+
+Notes:
+- This backup was created before schema standardization migration
+- All field names are in their original (pre-migration) state
+- Use this backup to restore the database if migration fails
+
+Created by: tgulden@gulden1-t

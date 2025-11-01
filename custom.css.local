@@ -1,0 +1,121 @@
+/* custom.css */
+
+/* AG Grid Theme Colors */
+.ag-theme-balham {
+  --ag-foreground-color: #343a40;
+  --ag-background-color: #ffffff;
+  --ag-header-background-color: #f8f9fa;
+  --ag-odd-row-background-color: #f9f9f9;
+  --ag-row-hover-color: #e0e0e0;
+}
+
+/* Header Styling */
+.ag-theme-balham .ag-header {
+  background-color: var(--ag-header-background-color);
+  color: var(--ag-foreground-color);
+  font-weight: bold;
+  text-align: center;
+  border-bottom: 1px solid #dee2e6;
+}
+
+/* Cell Styling */
+.ag-theme-balham .ag-cell {
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  padding: 8px;
+  border-bottom: 1px solid #dee2e6;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+/* Align Specific Columns */
+.ag-theme-balham .ag-cell-value {
+  text-align: left;
+}
+
+.ag-theme-balham .ag-cell[col-id='Submitted Date'],
+.ag-theme-balham .ag-cell[col-id='Link'] {
+  text-align: center;
+}
+
+/* Alternating Row Colors */
+.ag-theme-balham .ag-row:nth-child(even) {
+  background-color: var(--ag-odd-row-background-color);
+}
+
+/* Row Hover Effect */
+.ag-theme-balham .ag-row:hover {
+  background-color: var(--ag-row-hover-color) !important;
+}
+
+/* Adjust the Data Table Height */
+#data-grid {
+  height: 70vh;
+}
+
+/* Link Styling */
+.ag-theme-balham .ag-cell[col-id='Link'] a {
+  color: #007bff; /* Change the link color as needed */
+  text-decoration: none;
+}
+
+.ag-theme-balham .ag-cell[col-id='Link'] a:hover {
+  text-decoration: underline;
+}
+
+/* Hide Floating Filters for All Columns Except 'Title' */
+.ag-theme-balham .ag-header-cell:not([col-id="Title"]) .ag-floating-filter-wrapper {
+    display: none; /* Completely hide the floating filter wrapper */
+    height: 0;      /* Remove any height */
+    padding: 0;     /* Remove padding */
+    margin: 0;      /* Remove margin */
+    border: none;   /* Remove borders */
+    overflow: hidden; /* Ensure no overflow */
+}
+
+/* Ensure 'Title' Column's Floating Filter is Visible */
+.ag-theme-balham .ag-header-cell[col-id="Title"] .ag-floating-filter {
+    display: flex; /* Use flex to center the input */
+    align-items: center;
+    justify-content: center;
+}
+
+/* Style the Floating Filter Input for the 'Title' Column */
+.ag-theme-balham .ag-header-cell[col-id="Title"] .ag-floating-filter-input {
+    width: 90%;
+    max-width: 40px; /* Prevent the input from becoming too wide */
+    padding: 6px 10px;
+    border: 1px solid #ced4da;
+    border-radius: 40px; /* Slightly rounded corners */
+    font-size: 14px;
+    color: #495057;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+}
+
+/* Add Hover and Focus Effects to the Floating Filter Input */
+.ag-theme-balham .ag-header-cell[col-id="Title"] .ag-floating-filter-input:hover {
+    border-color: #a0a0a0;
+    background-color: #f1f1f1;
+}
+
+.ag-theme-balham .ag-header-cell[col-id="Title"] .ag-floating-filter-input:focus {
+    border-color: #80bdff;
+    outline: none;
+    box-shadow: 0 0 5px rgba(128, 189, 255, 0.5);
+}
+
+/* Center the Floating Filter Within the 'Title' Header Cell */
+.ag-theme-balham .ag-header-cell[col-id="Title"] .ag-floating-filter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Adjust the Floating Filter Row Height */
+.ag-theme-balham .ag-header-row.ag-floating-filter-row {
+    height: 40px; /* Adjust this value as needed */
+    /* Optional: further reduce if necessary */
+    /* height: 30px; */
+}

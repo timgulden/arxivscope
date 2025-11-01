@@ -1,0 +1,9 @@
+Real Token Analysis Report - 2025-09-02T00:10:48.306197
+============================================================
+
+Analysis based on 100 real papers from database
+Average title tokens: 30.7
+Average abstract tokens: 206.3
+Average total tokens per paper: 237.0
+Cost per paper: $0.000005
+Cost for 20M papers: $94.81

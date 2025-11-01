@@ -1,0 +1,51 @@
+/* Minimal CSS - only basic styling, no Plotly interference */
+
+body, #react-entry-point, .dash-app-content {
+    background-color: #000 !important;
+    color: #fff !important;
+}
+
+/* Ensure Voronoi polygon lines are visible */
+.js-plotly-plot .plotly .main-svg .shapelayer path {
+    stroke: rgba(128, 128, 128, 0.8) !important;
+    stroke-width: 1px !important;
+}
+
+/* --- Removed all aggressive scatterlayer and SVG color/fill overrides --- */
+
+/* Enrichment dropdown styling */
+.Select-control {
+    border-radius: 4px !important;
+    border: 1px solid #ccc !important;
+}
+
+.Select-menu-outer {
+    max-height: 200px !important;
+    overflow-y: auto !important;
+}
+
+.Select-option {
+    padding: 8px 12px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+.Select-option:hover {
+    background-color: #f0f0f0 !important;
+}
+
+.Select-value-label {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* Prevent dropdown text from overlapping */
+.Select-control .Select-value {
+    max-width: 100% !important;
+}
+
+.Select-control .Select-input {
+    max-width: 100% !important;
+} 

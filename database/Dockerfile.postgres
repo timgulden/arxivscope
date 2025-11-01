@@ -1,0 +1,32 @@
+FROM postgres:15
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    git \
+    postgresql-server-dev-15 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install pgvector
+RUN git clone --branch v0.5.1 https://github.com/pgvector/pgvector.git \
+    && cd pgvector \
+    && make \
+    && make install
+
+# Copy initialization scripts
+COPY init.sql /docker-entrypoint-initdb.d/
+COPY postgresql.conf /etc/postgresql/postgresql.conf
+
+# Create backup directory
+RUN mkdir -p /backups
+
+# Copy backup and recovery scripts
+COPY backup.sh /backup.sh
+COPY recover.sh /recover.sh
+RUN chmod +x /backup.sh /recover.sh
+
+EXPOSE 5432
+
+# Set default command
+CMD ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"] 

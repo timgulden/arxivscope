@@ -1,0 +1,15 @@
+Progress Report - 2025-09-02T00:05:04.083138
+========================================
+
+Total Papers: 17,870,457
+Full Embeddings: 4,570,748 (25.6%)
+2D Embeddings: 4,197,003 (23.5%)
+Papers Needing Full: 13,299,709
+Papers Needing 2D: 13,673,454
+Method: known_actual_numbers
+
+Rates:
+Full: 0.0/hour
+2D: 0.0/hour
+Full Completion: Unknown
+2D Completion: Unknown

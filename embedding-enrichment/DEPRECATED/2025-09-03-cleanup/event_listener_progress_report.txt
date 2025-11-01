@@ -1,0 +1,12 @@
+Event Listener Progress Report - 2025-09-02T04:09:56.759620
+==================================================
+
+Total Papers: 17,870,457
+Full Embeddings: 4,537,998 (25.4%)
+Papers Needing Full: 13,332,459
+Processed So Far: 376,000
+Percentage Complete: 2.8%
+Method: event_listener_logs
+
+Rate: 81000.0 papers/hour
+Time to completion: 6.7 days

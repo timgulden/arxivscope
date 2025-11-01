@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  api:
+    build: ./doctrove-api
+    image: doctroveregistry.azurecr.io/doctrove-api:latest
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - AZURE_OPENAI_KEY=${AZURE_OPENAI_KEY}
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+    ports:
+      - "5001:5001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - doctrove-network
+
+  frontend:
+    build: ./docscope
+    image: doctroveregistry.azurecr.io/docscope-frontend:latest
+    environment:
+      - API_BASE_URL=${API_BASE_URL}
+      - DEBUG=False
+    ports:
+      - "8050:8050"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - doctrove-network
+
+  enrichment:
+    build: ./embedding-enrichment
+    image: doctroveregistry.azurecr.io/embedding-enrichment:latest
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - AZURE_OPENAI_KEY=${AZURE_OPENAI_KEY}
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+      - BATCH_SIZE=${BATCH_SIZE:-100000}
+    volumes:
+      - model-storage:/app/models
+      - enrichment-logs:/app/logs
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - doctrove-network
+
+  ingestor:
+    build: ./doc-ingestor
+    image: doctroveregistry.azurecr.io/doc-ingestor:latest
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - data-storage:/app/data
+      - ingestion-logs:/app/logs
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: "no"  # Manual start for batch processing
+    networks:
+      - doctrove-network
+
+networks:
+  doctrove-network:
+    driver: bridge
+
+volumes:
+  model-storage:
+    driver: local
+  data-storage:
+    driver: local
+  enrichment-logs:
+    driver: local
+  ingestion-logs:
+    driver: local 

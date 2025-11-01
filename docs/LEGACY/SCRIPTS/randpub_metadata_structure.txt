@@ -1,0 +1,30 @@
+                                              Table "public.randpub_metadata"
+            Column            | Type | Collation | Nullable | Default | Storage  | Compression | Stats target | Description 
+------------------------------+------+-----------+----------+---------+----------+-------------+--------------+-------------
+ doctrove_paper_id            | uuid |           | not null |         | plain    |             |              | 
+ randpub_source_id            | text |           |          |         | extended |             |              | 
+ randpub_title                | text |           |          |         | extended |             |              | 
+ randpub_abstract             | text |           |          |         | extended |             |              | 
+ randpub_authors              | text |           |          |         | extended |             |              | 
+ randpub_publication_date     | text |           |          |         | extended |             |              | 
+ randpub_source               | text |           |          |         | extended |             |              | 
+ randpub_doi                  | text |           |          |         | extended |             |              | 
+ randpub_links                | text |           |          |         | extended |             |              | 
+ randpub_document_access_info | text |           |          |         | extended |             |              | 
+ randpub_library_record_info  | text |           |          |         | extended |             |              | 
+ randpub_publication_id       | text |           |          |         | extended |             |              | 
+ randpub_program              | text |           |          |         | extended |             |              | 
+ randpub_classification_level | text |           |          |         | extended |             |              | 
+ randpub_funding_info         | text |           |          |         | extended |             |              | 
+ randpub_subject_headings     | text |           |          |         | extended |             |              | 
+ randpub_corporate_authors    | text |           |          |         | extended |             |              | 
+ randpub_publication_type     | text |           |          |         | extended |             |              | 
+ randpub_quality_score        | text |           |          |         | extended |             |              | 
+ randpub_marc_id              | text |           |          |         | extended |             |              | 
+ randpub_processing_date      | text |           |          |         | extended |             |              | 
+Indexes:
+    "randpub_metadata_pkey" PRIMARY KEY, btree (doctrove_paper_id)
+Foreign-key constraints:
+    "randpub_metadata_doctrove_paper_id_fkey" FOREIGN KEY (doctrove_paper_id) REFERENCES doctrove_papers(doctrove_paper_id)
+Access method: heap
+

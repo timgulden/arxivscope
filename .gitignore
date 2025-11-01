@@ -1,0 +1,193 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+arxivscope/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment variables and secrets
+.env
+*.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Logs
+*.log
+logs/
+api.log
+frontend.log
+enrichment.log
+api_fresh.log
+openalex_incremental_sync.log
+
+# Patch and temporary files
+patch_*.log
+patch_*.txt
+openalex_metadata_patch_*.sh
+openalex_metadata_patch_*.log
+
+# Data files
+*.pkl
+*.pickle
+*.json
+*.csv
+*.tsv
+*.xlsx
+*.xls
+all_arxiv_json_data.json
+all_ids.txt
+recent_data_json.json
+arxiv_scope_massive_json/
+
+# Large model files
+embedding-enrichment/umap_model.pkl
+embedding-enrichment/umap_model.pkl.backup
+embedding-enrichment/*.pkl
+embedding-enrichment/*.pickle
+
+# Data directories (keep separate from repo)
+~/Documents/doctrove-data/
+doctrove-data/
+data/
+
+# OpenAlex data files (large external datasets)
+openalex_ingestion/
+openalex_data/
+openalex_works/
+*.gz
+openalex_*.json
+openalex_*.jsonl
+openalex_*.csv
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# Pyre type checker
+.pyre/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# Pyre type checker
+.pyre/
+
+# Specific project files
+arxivscope/arxivscope/
+
+# Cursor IDE files
+.cursor-server/
+.cache/
+.bash_history
+.bashrc
+.ssh/
+.ssh_filter.sh
+.sudo_as_admin_successful
+jupyter-notebook-*.pem
+
+# Clean terminal files (keep these for reference but don't track)
+clean_terminal.sh
+setup_clean_terminal.sh
+ssh_config_clean
+cleanup_debug_files.sh
+
+# Database backups (large files)
+database_backups/*.sql
+*.sql
+*.pkl
+
+# npm cache
+.npm/
+
+# Node modules
+node_modules/
+
+# MARC data files
+*.mrc
