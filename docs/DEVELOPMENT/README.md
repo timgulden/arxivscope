@@ -40,6 +40,103 @@ This section contains development guides, quick start instructions, testing docu
 - **Documentation**: Update documentation with code changes
 - **Code Review**: All changes go through code review
 
+## 🔀 Git Workflow & Commit Procedures
+
+### Branching Strategy
+- **Main Branch**: `main` - production-ready code only
+- **Feature Branches**: `feat/<area>-<short-desc>` - new features
+- **Hotfix Branches**: `hotfix/<description>` - critical bug fixes
+- **No direct commits to main**: All changes via feature branches and PRs
+
+### Commit Guidelines
+```bash
+# Standard commit workflow
+git checkout main
+git pull origin main                           # Always start from latest
+git checkout -b feat/your-feature-name         # Create feature branch
+# ... make changes ...
+git add .
+git commit -m "feat: brief description"       # Use conventional commits
+git push origin feat/your-feature-name
+# Create Pull Request on GitHub
+```
+
+### Commit Message Format
+Use conventional commit messages:
+- **`feat:`** - New feature
+- **`fix:`** - Bug fix
+- **`docs:`** - Documentation changes
+- **`refactor:`** - Code refactoring
+- **`test:`** - Test additions/changes
+- **`chore:`** - Maintenance tasks
+
+**Examples:**
+```bash
+git commit -m "feat: add semantic search filter modal"
+git commit -m "fix: resolve clustering performance issue"
+git commit -m "docs: update API endpoint documentation"
+```
+
+### Before Committing
+
+**⚠️ CRITICAL CHECKS:**
+1. **Never commit sensitive data**: `.env.local`, API keys, credentials
+2. **Never commit large files**: `.gitignore` should exclude data files, node_modules, etc.
+3. **Check repository size**: If repository exceeds 100MB, investigate large files
+4. **Verify .gitignore**: Ensure data directories and environment files are excluded
+
+**Pre-Commit Checklist:**
+```bash
+# Check what will be committed
+git status
+git diff --staged
+
+# Check for large files
+git ls-files | xargs du -h | sort -hr | head -20
+
+# Verify .env.local is NOT committed
+git ls-files | grep -E "^\.env$|^\.env\.local$"
+# Should return nothing!
+
+# Run tests before committing
+python -m pytest tests/
+npm test  # For frontend changes
+```
+
+### Repository Size Issues
+
+**If push is slow or fails due to size:**
+```bash
+# Check repository size
+git count-objects -vH
+
+# If repository is too large, create fresh repo
+cd /path/to/project
+rm -rf .git
+git init
+git add .
+git commit -m "feat: initial commit with current codebase"
+git remote add origin git@github.com:username/repo.git
+git push -u origin main
+```
+
+**Prevent future size issues:**
+- Use `.gitignore` to exclude large data files
+- Use Git LFS for binary assets if necessary
+- Keep data separate from code repository
+- Regular cleanup of build artifacts
+
+### GitHub Setup
+For authentication setup instructions, see: **[GITHUB_SETUP.md](../../GITHUB_SETUP.md)**
+
+### Code Review Process
+1. Create Pull Request from feature branch
+2. Ensure all tests pass
+3. Request review from appropriate team members
+4. Address review comments
+5. Merge to main when approved
+6. Delete feature branch after merge
+
 ## 🔧 Development Environment
 
 ### Setup Requirements

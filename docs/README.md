@@ -32,6 +32,7 @@ Welcome to the comprehensive documentation for the DocTrove/DocScope project. Th
 - **Quick Start**: Getting started guides for developers
 - **Testing**: Comprehensive testing guide and test suite documentation
 - **Code Standards**: Functional programming principles and coding guidelines
+- **Git Workflow**: Commit procedures, branching strategy, and repository management
 - **TypeScript Docs Generation**: See [DEVELOPMENT/DOCS_GENERATION_GUIDE.md](./DEVELOPMENT/DOCS_GENERATION_GUIDE.md)
 
 ### 🔧 [OPERATIONS](./OPERATIONS/) [Current]
