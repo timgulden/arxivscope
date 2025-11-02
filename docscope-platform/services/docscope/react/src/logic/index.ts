@@ -8,6 +8,7 @@
 export * from './core/types';
 export * from './core/interceptor';
 export * from './core/contracts';
+export * from './core/state-store';
 
 // View Management
 export * from './view/view-management';

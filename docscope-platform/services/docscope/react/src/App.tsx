@@ -5,13 +5,27 @@ import { MainCanvas } from './components/MainCanvas';
 import { MetadataSidebar } from './components/MetadataSidebar';
 import { DateSlider } from './components/DateSlider';
 import { SemanticFilterModal } from './components/SemanticFilterModal';
-import { createFetchRequest } from './logic';
+import { TopBarControls } from './components/TopBarControls';
+import { UniverseFilterModal } from './components/UniverseFilterModal';
+import { 
+  createFetchRequest, 
+  testQuery,
+  toggleClustering, 
+  updateClusterCount, 
+  updateViewLimit,
+  parseClusterCount,
+  parseLimit
+} from './logic';
 import './App.css';
 
 function App() {
   const [state, dispatch] = useAppState();
   const { fetchPapers, fetchMaxExtent } = useDataFetch(dispatch);
   const [semanticFilterOpen, setSemanticFilterOpen] = useState(false);
+  const [universeFilterOpen, setUniverseFilterOpen] = useState(false);
+  // TODO: Add symbolization and sort state to proper state management
+  const [symbolizationActive, setSymbolizationActive] = useState(false);
+  const [sortActive, setSortActive] = useState(false);
 
   // Initial data load
   useEffect(() => {
@@ -54,6 +68,97 @@ function App() {
     await fetchPapers(fetchRequest);
   };
 
+  // ============================================================================
+  // Top Bar Controls Handlers - Using Pure Functions from Logic Layer
+  // ============================================================================
+
+  // Handle clustering toggle - uses pure function from logic layer
+  const handleClusteringToggle = () => {
+    const newEnrichment = toggleClustering(state.enrichment);
+    dispatch({ type: 'ENRICHMENT_UPDATE', payload: newEnrichment });
+  };
+
+  // Handle compute clusters button - uses pure functions from logic layer
+  const handleComputeClusters = async (clusterCount: number) => {
+    const newEnrichment = updateClusterCount(state.enrichment, clusterCount);
+    
+    if (newEnrichment) {
+      dispatch({ type: 'ENRICHMENT_UPDATE', payload: newEnrichment });
+      
+      // Trigger data refetch with updated enrichment
+      const fetchRequest = createFetchRequest(state.view, state.filter, newEnrichment);
+      await fetchPapers(fetchRequest);
+    }
+  };
+
+  // Handle cluster count input change - uses pure parsing function
+  const handleClusterCountChange = (value: string) => {
+    // Just validate - actual update happens on blur or compute button click
+    // This is just for immediate feedback while typing
+    const parsed = parseClusterCount(value);
+    // Could track valid/invalid state for UI feedback if needed
+  };
+
+  // Handle limit/fetch input change - uses pure functions from logic layer
+  const handleLimitChange = async (value: string) => {
+    const limit = parseLimit(value);
+    
+    if (limit !== null) {
+      const newView = updateViewLimit(state.view, limit);
+      
+      if (newView) {
+        dispatch({ type: 'VIEW_UPDATE', payload: newView });
+        
+        // Trigger data refetch with new limit
+        const fetchRequest = createFetchRequest(newView, state.filter, state.enrichment);
+        await fetchPapers(fetchRequest);
+      }
+    }
+  };
+
+  // Handle universe filter test - uses pure function from logic layer
+  const handleTestUniverseQuery = async (sql: string): Promise<{ success: boolean; message: string }> => {
+    // Create API provider function
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api';
+    const apiProvider = async (params: { sqlFilter: string }) => {
+      const response = await fetch(
+        `${apiBaseUrl}/papers?sql_filter=${encodeURIComponent(params.sqlFilter)}&limit=1&test_query=true`,
+        { method: 'GET' }
+      );
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      return await response.json();
+    };
+
+    // Use pure function from logic layer
+    return testQuery(sql, apiProvider);
+  };
+
+  // Handle universe filter application - uses pure functions from logic layer
+  const handleUniverseFilterApply = async (universeConstraints: string | null) => {
+    // Update filter state
+    dispatch({
+      type: 'FILTER_UPDATE',
+      payload: {
+        ...state.filter,
+        universeConstraints,
+        lastUpdate: Date.now(),
+      },
+    });
+
+    // Trigger data fetch with updated filter
+    const updatedFilter = {
+      ...state.filter,
+      universeConstraints,
+      lastUpdate: Date.now(),
+    };
+    const fetchRequest = createFetchRequest(state.view, updatedFilter, state.enrichment);
+    await fetchPapers(fetchRequest);
+  };
+
   return (
     <div style={{ 
       width: '100vw', 
@@ -71,44 +176,34 @@ function App() {
         padding: '10px 20px',
         display: 'flex',
         alignItems: 'center',
-        gap: '20px',
+        justifyContent: 'space-between',
         fontSize: '14px',
         position: 'relative'
       }}>
+        {/* Left Section: DocScope title */}
         <h1 style={{ margin: 0, fontSize: '18px' }}>DocScope</h1>
         
-        {/* Semantic Filter Button - Centered */}
-        <button
-          onClick={() => setSemanticFilterOpen(true)}
-          style={{
-            position: 'absolute',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            padding: '6px 12px',
-            backgroundColor: state.filter.searchText ? '#3498db' : '#27ae60',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '14px',
+        {/* Top Bar Controls: Left, Center (Universe/Semantic/Symbolization cluster), Right */}
+        <TopBarControls
+          state={state}
+          onCountClick={() => {/* TODO: Implement count display toggle */}}
+          onClusteringToggle={handleClusteringToggle}
+          onComputeClusters={handleComputeClusters}
+          onClusterCountChange={handleClusterCountChange}
+          onLimitChange={handleLimitChange}
+          onUniverseFilterOpen={() => setUniverseFilterOpen(true)}
+          onSemanticFilterOpen={() => setSemanticFilterOpen(true)}
+          onSymbolizationOpen={() => {
+            setSymbolizationActive(!symbolizationActive);
+            // TODO: Implement symbolization modal
           }}
-          onMouseOver={(e) => {
-            if (state.filter.searchText) {
-              e.currentTarget.style.backgroundColor = '#2980b9';
-            } else {
-              e.currentTarget.style.backgroundColor = '#229954';
-            }
+          onSortClick={() => {
+            setSortActive(!sortActive);
+            // TODO: Implement sort functionality
           }}
-          onMouseOut={(e) => {
-            if (state.filter.searchText) {
-              e.currentTarget.style.backgroundColor = '#3498db';
-            } else {
-              e.currentTarget.style.backgroundColor = '#27ae60';
-            }
-          }}
-        >
-          Semantic Filter
-        </button>
+          symbolizationActive={symbolizationActive}
+          sortActive={sortActive}
+        />
       </header>
       
       {/* Main content area - canvas and sidebar */}
@@ -147,6 +242,16 @@ function App() {
           dispatch={dispatch}
           onClose={() => setSemanticFilterOpen(false)}
           onApply={handleSemanticFilterApply}
+        />
+      )}
+
+      {/* Universe Filter Modal */}
+      {universeFilterOpen && (
+        <UniverseFilterModal
+          state={state}
+          onClose={() => setUniverseFilterOpen(false)}
+          onTestQuery={handleTestUniverseQuery}
+          onApply={handleUniverseFilterApply}
         />
       )}
     </div>
