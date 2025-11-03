@@ -668,8 +668,8 @@ def get_papers_count():
 def get_papers_count_alias():
     return get_papers_count()
 
-@app.route('/api/papers/<paper_id>', methods=['GET'])
-def get_paper(paper_id: str):
+@app.route('/api/papers/<uuid:paper_id>', methods=['GET'])
+def get_paper(paper_id):
     """Get detailed information about a specific paper."""
     # Create interceptor stack for this endpoint
     stack = InterceptorStack(create_paper_detail_endpoint_stack())
@@ -687,8 +687,8 @@ def get_paper(paper_id: str):
         return response[0], response[1]
     return response
 
-@app.route('/api/papers/<paper_id>/details', methods=['GET'])
-def get_paper_details_lazy(paper_id: str):
+@app.route('/api/papers/<uuid:paper_id>/details', methods=['GET'])
+def get_paper_details_lazy(paper_id):
     """Get detailed paper information for lazy loading (optimized for click responses)."""
     try:
         # Create interceptor stack for this endpoint
