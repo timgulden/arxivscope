@@ -214,8 +214,8 @@ export function updateViewLimit(
   currentView: ViewState,
   limit: number
 ): ViewState | null {
-  // Validate limit (max 99999)
-  if (isNaN(limit) || limit < 100 || limit > 99999) {
+  // Validate limit (max 25000)
+  if (isNaN(limit) || limit < 100 || limit > 25000) {
     return null; // Invalid - return null to signal validation failure
   }
 
@@ -247,7 +247,7 @@ export function parseClusterCount(input: string): number | null {
  */
 export function parseLimit(input: string): number | null {
   const num = parseInt(input, 10);
-  if (isNaN(num) || num < 100 || num > 99999) {
+  if (isNaN(num) || num < 100 || num > 25000) {
     return null;
   }
 

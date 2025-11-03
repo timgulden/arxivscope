@@ -67,11 +67,20 @@ export function TopBarControls({
   const [clusterCountInput, setClusterCountInput] = useState<string>(
     state.enrichment.clusterCount.toString()
   );
+  // Local UI state for fetch limit input to reflect changes immediately while typing
+  const [fetchInput, setFetchInput] = useState<string>(
+    state.view.limit.toString()
+  );
 
   // Sync local input state when domain state changes
   useEffect(() => {
     setClusterCountInput(state.enrichment.clusterCount.toString());
   }, [state.enrichment.clusterCount]);
+
+  // Sync local fetch input when domain state changes externally
+  useEffect(() => {
+    setFetchInput(state.view.limit.toString());
+  }, [state.view.limit]);
 
   const controlGroupStyle: React.CSSProperties = {
     display: 'flex',
@@ -291,10 +300,9 @@ export function TopBarControls({
         <div style={controlGroupStyle}>
           <label style={labelStyle}>Clusters:</label>
           <input
-            type="number"
-            min="2"
-            max="99"
-            step="1"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             value={clusterCountInput}
             onChange={(e) => {
               const value = e.target.value;
@@ -316,12 +324,15 @@ export function TopBarControls({
         <div style={controlGroupStyle}>
           <label style={labelStyle}>Fetch:</label>
           <input
-            type="number"
-            min="100"
-            max="99999"
-            step="100"
-            value={state.view.limit}
-            onChange={(e) => onLimitChange(e.target.value)}
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={fetchInput}
+            onChange={(e) => {
+              const value = e.target.value;
+              setFetchInput(value);
+              onLimitChange(value);
+            }}
             style={fetchInputStyle}
           />
         </div>

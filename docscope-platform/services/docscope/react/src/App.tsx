@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAppState } from './hooks/useAppState';
 import { useDataFetch } from './hooks/useDataFetch';
 import { MainCanvas } from './components/MainCanvas';
@@ -43,6 +43,9 @@ function App() {
   const [symbolizationsLoading, setSymbolizationsLoading] = useState(false);
   // TODO: Add sort state to proper state management
   const [sortActive, setSortActive] = useState(false);
+  // Debounce timers
+  const limitDebounceRef = useRef<number | null>(null);
+  const clusterDebounceRef = useRef<number | null>(null);
 
   // Fetch available symbolizations on mount
   useEffect(() => {
@@ -214,27 +217,33 @@ function App() {
 
   // Handle cluster count input change - uses pure parsing function
   const handleClusterCountChange = (value: string) => {
-    // Just validate - actual update happens on blur or compute button click
-    // This is just for immediate feedback while typing
-    const parsed = parseClusterCount(value);
-    // Could track valid/invalid state for UI feedback if needed
+    // Debounce any potential downstream effects (currently only validation)
+    if (clusterDebounceRef.current) {
+      window.clearTimeout(clusterDebounceRef.current);
+    }
+    clusterDebounceRef.current = window.setTimeout(() => {
+      // Validate input; actual compute happens on button click
+      const _parsed = parseClusterCount(value);
+    }, 1000);
   };
 
   // Handle limit/fetch input change - uses pure functions from logic layer
-  const handleLimitChange = async (value: string) => {
-    const limit = parseLimit(value);
-    
-    if (limit !== null) {
-      const newView = updateViewLimit(state.view, limit);
-      
-      if (newView) {
-        dispatch({ type: 'VIEW_UPDATE', payload: newView });
-        
-        // Trigger data refetch with new limit
-        const fetchRequest = createFetchRequest(newView, state.filter, state.enrichment);
-        await fetchPapers(fetchRequest);
-      }
+  const handleLimitChange = (value: string) => {
+    // Debounce to avoid fetching on every keystroke
+    if (limitDebounceRef.current) {
+      window.clearTimeout(limitDebounceRef.current);
     }
+    limitDebounceRef.current = window.setTimeout(async () => {
+      const limit = parseLimit(value);
+      if (limit !== null) {
+        const newView = updateViewLimit(state.view, limit);
+        if (newView) {
+          dispatch({ type: 'VIEW_UPDATE', payload: newView });
+          const fetchRequest = createFetchRequest(newView, state.filter, state.enrichment);
+          await fetchPapers(fetchRequest);
+        }
+      }
+    }, 1000);
   };
 
   // Handle universe filter test - uses pure function from logic layer
