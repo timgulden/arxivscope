@@ -43,6 +43,9 @@ function App() {
   const [symbolizationsLoading, setSymbolizationsLoading] = useState(false);
   // TODO: Add sort state to proper state management
   const [sortActive, setSortActive] = useState(false);
+  // Count UI state (UI-only)
+  const [countLoading, setCountLoading] = useState(false);
+  const [countValue, setCountValue] = useState<number | null>(null);
   // Debounce timers
   const limitDebounceRef = useRef<number | null>(null);
   const clusterDebounceRef = useRef<number | null>(null);
@@ -400,7 +403,40 @@ function App() {
         {/* Top Bar Controls: Left, Center (Universe/Semantic/Symbolization cluster), Right */}
         <TopBarControls
           state={state}
-          onCountClick={() => {/* TODO: Implement count display toggle */}}
+          onCountClick={async () => {
+            try {
+              setCountLoading(true);
+              // Build params similar to fetchPapers but omit bbox
+              const fetchRequest = createFetchRequest(state.view, state.filter, state.enrichment);
+              const params: Record<string, any> = {};
+              if (fetchRequest.sqlFilter) params.sql_filter = fetchRequest.sqlFilter;
+              if (fetchRequest.searchText) {
+                params.search_text = fetchRequest.searchText;
+                params.similarity_threshold = fetchRequest.similarityThreshold;
+              }
+              if (fetchRequest.enrichmentParams) {
+                const ep = fetchRequest.enrichmentParams;
+                if (ep.symbolization_id) params.symbolization_id = ep.symbolization_id;
+                if (ep.enrichment_source) params.enrichment_source = ep.enrichment_source;
+                if (ep.enrichment_table) params.enrichment_table = ep.enrichment_table;
+                if (ep.enrichment_field) params.enrichment_field = ep.enrichment_field;
+              }
+              const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
+              // Use unambiguous alias to avoid dynamic route conflicts on the API
+              const url = `${apiBase}/api/paper-count`;
+              const query = new URLSearchParams(params).toString();
+              const resp = await fetch(`${url}?${query}`);
+              if (!resp.ok) throw new Error(`API error: ${resp.status}`);
+              const data = await resp.json();
+              setCountValue(typeof data.count === 'number' ? data.count : 0);
+            } catch (e) {
+              console.error('Count fetch failed:', e);
+              setCountValue(null);
+              alert('Failed to get count. See console for details.');
+            } finally {
+              setCountLoading(false);
+            }
+          }}
           onClusteringToggle={handleClusteringToggle}
           onComputeClusters={handleComputeClusters}
           onHideClusters={handleHideClusters}
@@ -415,6 +451,8 @@ function App() {
           }}
           symbolizationActive={state.enrichment.symbolizationId !== null}
           sortActive={sortActive}
+          countValue={countValue}
+          countLoading={countLoading}
         />
       </header>
       

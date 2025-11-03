@@ -601,6 +601,73 @@ def get_papers():
         return response[0], response[1]
     return response
 
+@app.route('/api/papers/count', methods=['GET'])
+@log_performance("api_papers_count_endpoint")
+def get_papers_count():
+    """Return only the count of papers matching the provided filters.
+
+    Accepts the same query params as /api/papers (including optional bbox), but
+    returns { count: number } instead of a record set.
+    """
+    try:
+        # Parse parameters (mirror /api/papers where relevant)
+        bbox = request.args.get('bbox', type=str)
+        sql_filter = request.args.get('sql_filter', type=str)
+        search_text = request.args.get('search_text', type=str)
+        similarity_threshold = request.args.get('similarity_threshold', type=float, default=0.0)
+
+        enrichment_source = request.args.get('enrichment_source', type=str)
+        enrichment_table = request.args.get('enrichment_table', type=str)
+        enrichment_field = request.args.get('enrichment_field', type=str)
+
+        # Parse bbox if provided
+        bbox_tuple = None
+        if bbox:
+            try:
+                parts = [float(x) for x in bbox.split(',')]
+                if len(parts) == 4:
+                    bbox_tuple = (parts[0], parts[1], parts[2], parts[3])
+            except Exception:
+                bbox_tuple = None
+
+        # Fields are irrelevant for count, but business logic expects a list
+        fields = ['doctrove_paper_id']
+
+        # Build count query
+        query, params, warnings = build_count_query_v2(
+            fields=fields,
+            sql_filter=sql_filter,
+            bbox=bbox_tuple,
+            embedding_type='doctrove',
+            search_text=search_text,
+            similarity_threshold=similarity_threshold,
+            enrichment_source=enrichment_source,
+            enrichment_table=enrichment_table,
+            enrichment_field=enrichment_field,
+        )
+
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(f"/api/papers/count SQL: {query}")
+            logger.debug(f"/api/papers/count params: {params}")
+
+        # Execute count
+        with create_connection_factory()() as conn:
+            with conn.cursor() as cur:
+                cur.execute(query, params)
+                row = cur.fetchone()
+                count_value = row[0] if row else 0
+
+        return jsonify({ 'count': int(count_value), 'warnings': warnings }), 200
+
+    except Exception as e:
+        logger.error(f"Error in /api/papers/count: {e}")
+        return jsonify({ 'error': str(e) }), 500
+
+# Provide an unambiguous alias to avoid route conflicts with /api/papers/<paper_id>
+@app.route('/api/paper-count', methods=['GET'])
+def get_papers_count_alias():
+    return get_papers_count()
+
 @app.route('/api/papers/<paper_id>', methods=['GET'])
 def get_paper(paper_id: str):
     """Get detailed information about a specific paper."""
