@@ -12,6 +12,7 @@ import type {
   StateAction,
   ViewState,
   EnrichmentState,
+  ClusterData,
 } from './types';
 
 
@@ -54,6 +55,14 @@ export function createInitialState(): ApplicationState {
       source: null,
       table: null,
       field: null,
+      symbolizationId: null,
+      symbolizationColorMap: null,
+      symbolizationField: null,
+      // Cluster state
+      clusterComputing: false,
+      clustersVisible: false,
+      clusterData: null,
+      clusterBbox: null,
     },
     ui: {
       loading: false,
@@ -243,5 +252,84 @@ export function parseLimit(input: string): number | null {
   }
 
   return num;
+}
+
+/**
+ * Set cluster computing state - PURE function
+ */
+export function setClusterComputing(
+  currentEnrichment: EnrichmentState,
+  computing: boolean
+): EnrichmentState {
+  return {
+    ...currentEnrichment,
+    clusterComputing: computing,
+    lastUpdate: Date.now(),
+  };
+}
+
+/**
+ * Set clusters visible with data - PURE function
+ */
+export function setClustersVisible(
+  currentEnrichment: EnrichmentState,
+  clusterData: ClusterData,
+  bbox: [number, number, number, number]
+): EnrichmentState {
+  return {
+    ...currentEnrichment,
+    clustersVisible: true,
+    clusterComputing: false,
+    clusterData,
+    clusterBbox: bbox,
+    lastUpdate: Date.now(),
+  };
+}
+
+/**
+ * Hide clusters - PURE function
+ */
+export function hideClusters(
+  currentEnrichment: EnrichmentState
+): EnrichmentState {
+  return {
+    ...currentEnrichment,
+    clustersVisible: false,
+    clusterComputing: false,
+    clusterData: null,
+    clusterBbox: null,
+    lastUpdate: Date.now(),
+  };
+}
+
+/**
+ * Set symbolization in enrichment state - PURE function
+ */
+export function setSymbolization(
+  currentEnrichment: EnrichmentState, 
+  symbolizationId: number | null,
+  colorMap: Record<string, string> | null = null,
+  field: string | null = null
+): EnrichmentState {
+  return {
+    ...currentEnrichment,
+    symbolizationId,
+    symbolizationColorMap: colorMap,
+    symbolizationField: field,
+    lastUpdate: Date.now(),
+  };
+}
+
+/**
+ * Clear symbolization in enrichment state - PURE function
+ */
+export function clearSymbolization(currentEnrichment: EnrichmentState): EnrichmentState {
+  return {
+    ...currentEnrichment,
+    symbolizationId: null,
+    symbolizationColorMap: null,
+    symbolizationField: null,
+    lastUpdate: Date.now(),
+  };
 }
 

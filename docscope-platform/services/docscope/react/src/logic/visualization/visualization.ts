@@ -6,6 +6,7 @@
  */
 
 import type { ViewState, FilterState, EnrichmentState, Paper } from '../core/types';
+import type { ClusterData } from '../core/types';
 
 /**
  * Wrap title at word boundaries - PURE function
@@ -35,8 +36,8 @@ function wrapTitle(title: string, maxLength: number = 50): string {
 export interface PlotlyTrace {
   x: number[];
   y: number[];
-  mode: 'markers';
-  marker: {
+  mode: 'markers' | 'lines';
+  marker?: {
     size: number;
     opacity: number;
     color: string | string[];
@@ -44,6 +45,10 @@ export interface PlotlyTrace {
       width: number;
       color: string;
     };
+  };
+  line?: {
+    width: number;
+    color: string;
   };
   text?: string[];
   customdata?: any[]; // Store paper IDs for click/hover events
@@ -83,6 +88,20 @@ export interface PlotlyLayout {
   };
   dragmode: 'pan';
   hovermode: 'closest';
+  annotations?: Array<{
+    x: number;
+    y: number;
+    text: string;
+    showarrow: boolean;
+    font?: {
+      color: string;
+      size: number;
+      family: string;
+    };
+    bgcolor?: string;
+    bordercolor?: string;
+    borderwidth?: number;
+  }>;
 }
 
 export interface PlotlyFigure {
@@ -151,8 +170,64 @@ export function createFigure(
   // Create layout
   const layout = createLayoutWithView(viewState);
 
+  // Add cluster overlays if clusters are visible
+  const data: PlotlyTrace[] = [trace];
+  if (enrichmentState.clustersVisible && enrichmentState.clusterData) {
+    // Add Voronoi polygon traces (orange boundaries)
+    for (const polygon of enrichmentState.clusterData.polygons) {
+      // Close polygon if not already closed
+      const x = polygon.x.length > 0 && polygon.x[0] === polygon.x[polygon.x.length - 1] 
+        ? polygon.x 
+        : [...polygon.x, polygon.x[0]];
+      const y = polygon.y.length > 0 && polygon.y[0] === polygon.y[polygon.y.length - 1] 
+        ? polygon.y 
+        : [...polygon.y, polygon.y[0]];
+      
+      data.push({
+        x,
+        y,
+        mode: 'lines',
+        marker: {
+          size: 8,
+          opacity: 1,
+          color: '#FF8C00', // Orange color (not used in lines mode but required)
+        },
+        // For lines mode, use line property (not marker.line)
+        line: {
+          width: 1,
+          color: '#FF8C00', // Orange color
+        },
+        hovertemplate: '',
+        name: 'Cluster Region',
+        type: 'scatter',
+        showlegend: false,
+      });
+    }
+    
+    // Add annotations (orange text)
+    if (!layout.annotations) {
+      layout.annotations = [];
+    }
+    for (const annotation of enrichmentState.clusterData.annotations) {
+      layout.annotations.push({
+        x: annotation.x,
+        y: annotation.y,
+        text: annotation.text,
+        showarrow: false,
+        font: {
+          color: '#FF8C00', // Orange color
+          size: 18,
+          family: 'Arial',
+        },
+        bgcolor: 'rgba(0, 0, 0, 0.4)',
+        bordercolor: 'rgba(0, 0, 0, 0)',
+        borderwidth: 0,
+      });
+    }
+  }
+
   return {
-    data: [trace],
+    data,
     layout,
   };
 }
@@ -199,13 +274,109 @@ function createScatterTrace(
 
 /**
  * Get marker color - TRULY PURE function
- * Returns single color or array of colors based on enrichment
+ * Returns single color or array of colors based on enrichment or symbolization
  */
 function getMarkerColor(
   papers: Paper[],
   _filterState: FilterState, // TODO: Use for source-based coloring
   enrichmentState: EnrichmentState
 ): string | string[] {
+  // Check for symbolization first (takes precedence)
+  if (enrichmentState.symbolizationId !== null && 
+      enrichmentState.symbolizationColorMap && 
+      enrichmentState.symbolizationField) {
+    const field = enrichmentState.symbolizationField;
+    const colorMap = enrichmentState.symbolizationColorMap;
+    
+    // Parse field name to get column name (API returns column name, not qualified name)
+    // Example: "enrichment_country.country_uschina" -> "country_uschina"
+    const fieldParts = field.split('.');
+    const columnName = fieldParts.length > 1 ? fieldParts[fieldParts.length - 1] : field;
+    
+    // Debug: Log field names and available keys
+    console.log('🔍 Symbolization debug:', {
+      symbolizationId: enrichmentState.symbolizationId,
+      symbolizationField: field,
+      parsedColumnName: columnName,
+      colorMapKeys: Object.keys(colorMap),
+      samplePaperKeys: papers.length > 0 ? Object.keys(papers[0]) : [],
+      samplePaperValue: papers.length > 0 ? (papers[0] as any)[columnName] : null,
+      samplePaper: papers.length > 0 ? papers[0] : null,
+    });
+    
+    // Check multiple possible field name variations
+    // API returns the column name (e.g., "country_uschina"), not the qualified name
+    const possibleFieldNames = [
+      columnName,  // Most likely: just the column name
+      field,       // Full qualified name (if API returns it)
+      // Also try with underscores if it has dots
+      field.replace('.', '_'),
+    ];
+    
+    // Find the field name that exists in papers
+    // Check if field exists (even if null - it means the field was returned)
+    let foundField: string | null = null;
+    for (const fieldName of possibleFieldNames) {
+      if (papers.some(p => p[fieldName] !== undefined)) {
+        foundField = fieldName;
+        break;
+      }
+    }
+    
+    if (foundField) {
+      console.log('✅ Found field:', foundField);
+      
+      // Extract value_overrides from color map structure
+      // Color map structure: { apply_to: string, source_defaults: {...}, value_overrides: {...} }
+      const valueOverrides = (colorMap as any).value_overrides || {};
+      const sourceDefaults = (colorMap as any).source_defaults || {};
+      
+      console.log('🔍 Color map structure:', {
+        hasValueOverrides: !!valueOverrides,
+        valueOverrideKeys: Object.keys(valueOverrides),
+        hasSourceDefaults: !!sourceDefaults,
+        sourceDefaultKeys: Object.keys(sourceDefaults),
+      });
+      
+      // Return array of colors based on symbolization color map
+      const colors = papers.map(p => {
+        const value = p[foundField!];
+        if (value !== undefined && value !== null) {
+          const valueStr = String(value);
+          
+          // First, check value_overrides (explicit value-to-color mappings)
+          if (valueOverrides[valueStr] || valueOverrides[valueStr.toLowerCase()]) {
+            const color = valueOverrides[valueStr] || valueOverrides[valueStr.toLowerCase()];
+            console.log(`  ✅ Mapped value "${valueStr}" -> color "${color}" (from value_overrides)`);
+            return color;
+          }
+          
+          // Fallback: Check source_defaults if available
+          const source = (p as any).doctrove_source;
+          if (source && sourceDefaults[source]) {
+            const color = sourceDefaults[source];
+            console.log(`  ✅ Mapped source "${source}" -> color "${color}" (from source_defaults)`);
+            return color;
+          }
+          
+          // No match found
+          console.log(`  ⚠️ No color mapping for value "${valueStr}" (source: ${source})`);
+          return 'white';
+        }
+        // Field exists but value is null - use default color
+        return 'white';
+      });
+      
+      const uniqueColors = colors.filter((c, i) => colors.indexOf(c) === i);
+      console.log('🎨 Generated colors:', uniqueColors.slice(0, 10));
+      console.log(`   Total papers: ${papers.length}, Unique colors: ${uniqueColors.length}, White: ${colors.filter(c => c === 'white').length}`);
+      return colors;
+    } else {
+      console.warn('⚠️ Symbolization field not found in papers. Tried:', possibleFieldNames);
+      console.warn('   Available paper keys:', papers.length > 0 ? Object.keys(papers[0]) : []);
+    }
+  }
+  
   // If enrichment is active, check for enrichment field in papers
   if (enrichmentState.active) {
     // Check if papers have enrichment values

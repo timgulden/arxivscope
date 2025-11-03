@@ -1334,6 +1334,29 @@ def build_optimized_query_v2(
             table_aliases[enrichment_table] = enrichment_alias
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug(f"🔍 ENRICHMENT: Added enrichment table {enrichment_table} (alias: {enrichment_alias}) for field: {enrichment_field}")
+        
+        # CRITICAL: Add enrichment field to SELECT clause
+        # Use the alias for the enrichment table
+        enrichment_alias = table_aliases.get(enrichment_table, get_table_alias(enrichment_table))
+        # The field name in the response should match what the frontend expects
+        # Use column name directly as the response key
+        enrichment_field_mapping = f"{enrichment_alias}.{enrichment_field} AS {enrichment_field}"
+        
+        # Check if already added (avoid duplicates)
+        field_mapping_exists = any(
+            mapping.endswith(f" AS {enrichment_field}") or 
+            mapping == f"{enrichment_alias}.{enrichment_field}" or
+            mapping == f"{enrichment_alias}.{enrichment_field} AS {enrichment_field}"
+            for mapping in field_mappings
+        )
+        
+        if not field_mapping_exists:
+            field_mappings.append(enrichment_field_mapping)
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"🔍 ENRICHMENT: Added enrichment field to SELECT: {enrichment_field_mapping}")
+        else:
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"🔍 ENRICHMENT: Enrichment field already in SELECT: {enrichment_field}")
     
     # Build FROM clause generically from tables needed
     from_clause = "FROM doctrove_papers dp"
@@ -1540,8 +1563,16 @@ def build_optimized_query_v2(
                 column_name = get_field_column_name(base_field)
                 order_clause = f" ORDER BY {table_alias}.{column_name} {sort_direction}"
     else:
-        # Standard ordering for bbox queries - use year-only sorting for consistent grouping
-        if bbox:
+        # Standard ordering - prioritize papers with enrichment data when enrichment is active
+        if enrichment_table and enrichment_field:
+            # When enrichment is active, prioritize papers WITH enrichment data
+            enrichment_alias = table_aliases.get(enrichment_table, get_table_alias(enrichment_table))
+            # Sort by: enrichment field IS NOT NULL first (to prioritize papers with data),
+            # then publication_year DESC, then paper_id
+            order_clause = f" ORDER BY ({enrichment_alias}.{enrichment_field} IS NOT NULL) DESC, dp.publication_year DESC NULLS LAST, dp.doctrove_paper_id ASC"
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"🔍 ENRICHMENT ORDER: Prioritizing papers with enrichment data ({enrichment_table}.{enrichment_field})")
+        elif bbox:
             # Use publication_year field for fast integer sorting, then randomize within year
             # This ensures RAND papers (2024-01-01) and arXiv papers (2024-06-15) are treated equally
             # Papers with NULL years will naturally sort to the end and rarely appear

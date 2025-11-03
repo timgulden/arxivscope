@@ -459,6 +459,9 @@ def get_papers():
     logger.info(f"🔍 API DEBUG: symbolization_id: {symbolization_id}")
     
     # Process symbolization if provided
+    # NOTE: Fields list will be modified below to include enrichment field
+    enrichment_field_column_name = None  # Will be set if symbolization is found
+    
     if symbolization_id:
         print(f"🔍 PRINT DEBUG: About to process symbolization_id: {symbolization_id}")
         logger.info(f"Processing symbolization_id: {symbolization_id}")
@@ -545,6 +548,7 @@ def get_papers():
                                 enrichment_source = enrichment_params['source']
                                 enrichment_table = enrichment_params['table']
                                 enrichment_field = enrichment_params['field']
+                                enrichment_field_column_name = enrichment_field  # Store column name for fields list
                                 
                                 # Write to file to verify final enrichment values
                                 with open('/tmp/final_enrichment.txt', 'w') as f:
@@ -559,6 +563,9 @@ def get_papers():
             logger.error(f"Traceback: {traceback.format_exc()}")
     else:
         logger.info("No symbolization_id provided")
+    
+    # CRITICAL: enrichment_field_column_name will be passed via context
+    # and the interceptor will add it to the fields list
     
     # Debug: Enrichment parameters (commented out for production)
     # print(f"=== API DEBUG: Extracted enrichment params: source={enrichment_source}, table={enrichment_table}, field={enrichment_field} ===")
@@ -577,7 +584,8 @@ def get_papers():
         'similarity_threshold': similarity_threshold,
         'enrichment_source': enrichment_source,
         'enrichment_table': enrichment_table,
-        'enrichment_field': enrichment_field
+        'enrichment_field': enrichment_field,
+        'enrichment_field_column_name': enrichment_field_column_name  # Pass column name for fields list
     })
     
     # Write to file to verify context was created with enrichment params
@@ -774,6 +782,108 @@ def similarity_search():
         'error': 'Similarity search endpoint not yet implemented with interceptors'
     }), 501
 
+@app.route('/api/clusters/compute', methods=['POST'])
+def compute_clusters_endpoint():
+    """Compute clusters with KMeans, Voronoi polygons, and LLM summaries."""
+    try:
+        from clustering import compute_clusters
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Missing request body'}), 400
+        
+        papers = data.get('papers', [])
+        if not papers:
+            return jsonify({'error': 'Missing papers in request body'}), 400
+        
+        num_clusters = data.get('num_clusters', 10)
+        if not isinstance(num_clusters, int) or num_clusters < 1 or num_clusters > 1000:
+            num_clusters = 10
+        
+        # Extract bbox if provided (x_min, y_min, x_max, y_max)
+        bbox = None
+        if 'bbox' in data:
+            bbox_data = data['bbox']
+            if isinstance(bbox_data, (list, tuple)) and len(bbox_data) == 4:
+                bbox = tuple(float(x) for x in bbox_data)
+            elif isinstance(bbox_data, str):
+                # Parse "x_min,y_min,x_max,y_max" string format
+                bbox_parts = bbox_data.split(',')
+                if len(bbox_parts) == 4:
+                    bbox = tuple(float(x) for x in bbox_parts)
+        
+        logger.info(f"Computing {num_clusters} clusters for {len(papers)} papers" + 
+                   (f" with bbox {bbox}" if bbox else " without bbox"))
+        
+        # Compute clusters
+        result = compute_clusters(papers, num_clusters, bbox)
+        
+        return jsonify({
+            'success': True,
+            'polygons': result.get('polygons', []),
+            'annotations': result.get('annotations', [])
+        })
+        
+    except ImportError as e:
+        logger.error(f"Clustering import error: {e}")
+        return jsonify({'error': 'Clustering service not available'}), 503
+    except Exception as e:
+        logger.error(f"Clustering computation error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Clustering failed: {str(e)}'}), 500
+
+@app.route('/api/clusters/summaries', methods=['POST'])
+def cluster_summaries():
+    """Generate cluster summaries using LLM API. Frontend sends titles, backend returns summaries."""
+    try:
+        # Check if LLM features are disabled
+        if not USE_OPENAI_LLM:
+            return jsonify({'error': 'LLM features disabled via configuration'}), 503
+        
+        # Check if API key is configured
+        if not OPENAI_API_KEY or OPENAI_API_KEY == 'your_personal_openai_api_key_here':
+            return jsonify({'error': 'OpenAI API key not configured. Please set OPENAI_API_KEY in .env.local'}), 503
+        
+        data = request.get_json()
+        if not data or 'titles' not in data:
+            return jsonify({'error': 'Missing titles in request body'}), 400
+        
+        titles = data['titles']  # Array of arrays: [[title1, title2, ...], [title3, title4, ...], ...]
+        if not isinstance(titles, list) or len(titles) == 0:
+            return jsonify({'error': 'Invalid titles format'}), 400
+        
+        from clustering import build_llm_prompt, parse_llm_response, get_azure_llm_summaries
+        
+        # Build LLM prompt
+        llm_prompt = build_llm_prompt(titles)
+        
+        # Get summaries from LLM
+        try:
+            logger.info(f"Calling LLM API for {len(titles)} clusters")
+            logger.debug(f"LLM prompt length: {len(llm_prompt)} characters")
+            llm_response = get_azure_llm_summaries(llm_prompt)
+            logger.info(f"LLM API response received, length: {len(llm_response)} characters")
+            logger.debug(f"LLM response preview: {llm_response[:200]}")
+            summaries = parse_llm_response(llm_response, len(titles))
+            logger.info(f"Parsed {len(summaries)} summaries")
+        except Exception as e:
+            logger.error(f"LLM API call failed: {e}", exc_info=True)
+            import traceback
+            logger.error(f"Full traceback: {traceback.format_exc()}")
+            summaries = ["Summary unavailable."] * len(titles)
+        
+        return jsonify({
+            'success': True,
+            'summaries': summaries
+        })
+        
+    except Exception as e:
+        logger.error(f"Cluster summaries error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Cluster summaries failed: {str(e)}'}), 500
+
 @app.route('/api/clustering/summarize', methods=['POST'])
 def cluster_summarize():
     """Generate cluster summaries using LLM API."""
@@ -876,12 +986,11 @@ def generate_sql():
             guide_content = "Use standard SQL WHERE clause construction with available fields."
             schema_content = "Available fields: doctrove_papers.doctrove_source, doctrove_papers.doctrove_title, doctrove_papers.doctrove_abstract, doctrove_papers.doctrove_primary_date, doctrove_papers.doctrove_authors, randpub_metadata.document_type, randpub_metadata.rand_project, randpub_metadata.subjects, randpub_metadata.funding_info, extpub_metadata.document_type, extpub_metadata.subjects, extpub_metadata.funding_info, arxivscope_category, arxivscope_country, enrichment_country.country_uschina, enrichment_country.country_name, enrichment_country.country_confidence"
         
-        # Build prompt for LLM
+        # Build prompt for LLM - EXACT replica of Dash version (lines 766-800 in docscope/app.py)
         prompt = f"""You are a SQL expert. Generate ONLY a SQL WHERE clause for this request: "{natural_language}"
 
-## 💡 HELPFUL GUIDELINES:
+## 💡 HELPFUL GUIDELINES - AUTHOR SEARCHES:
 
-### Author Searches:
 **For searching authors, consider using:**
 - Field: `doctrove_authors` (works for all sources)
 - Syntax: `array_to_string(doctrove_authors, '|') LIKE '%AuthorName%'`
@@ -889,38 +998,9 @@ def generate_sql():
 
 **Alternative approaches that also work:**
 - `randpub_authors LIKE '%AuthorName%'` (RAND-specific)
+- `openalex_authors LIKE '%AuthorName%'` (OpenAlex-specific)
 
 **Note:** `doctrove_authors` is preferred because it works universally across all sources.
-
-### Qualified Field Naming:
-**The API uses fully qualified field names in the format table_name.column_name:**
-- ✅ **CORRECT**: `randpub_metadata.document_type`, `extpub_metadata.subjects`, `enrichment_country.country_uschina`
-- ❌ **WRONG**: `randpub_document_type`, `extpub_subjects`, `country_uschina`
-
-**Examples:**
-- RAND document type: `randpub_metadata.document_type = 'RR'`
-- External subjects: `extpub_metadata.subjects LIKE '%Policy%'`
-- ArXiv category: `arxivscope_category = 'cs.AI'`
-
-**Always include source constraints:**
-- `doctrove_papers.doctrove_source = 'randpub' AND randpub_metadata.document_type = 'RR'`
-- `doctrove_papers.doctrove_source = 'extpub' AND extpub_metadata.subjects LIKE '%Policy%'`
-- `doctrove_papers.doctrove_source = 'arxiv' AND arxivscope_category = 'cs.AI'`
-
-### NULL/NOT NULL Checks:
-**For checking if fields have values:**
-- Papers with abstracts: `doctrove_abstract IS NOT NULL`
-- Papers without abstracts: `doctrove_abstract IS NULL`
-- Papers with non-empty abstracts: `doctrove_abstract IS NOT NULL AND doctrove_abstract != ''`
-- Papers with titles: `doctrove_title IS NOT NULL`
-- Papers with publication dates: `doctrove_primary_date IS NOT NULL`
-
-### Other Common Patterns:
-- **Negation**: `doctrove_source != 'randpub'` or `NOT (doctrove_source = 'randpub')`
-- **Range checks**: `doctrove_primary_date BETWEEN '2020-01-01' AND '2023-12-31'`
-- **Case-insensitive search**: `doctrove_title ILIKE '%machine learning%'`
-- **Multiple values**: `doctrove_source IN ('randpub', 'extpub')`
-- **Pattern matching**: `doctrove_title LIKE '%AI%'` or `doctrove_title LIKE 'Machine%'`
 
 ## INSTRUCTIONS:
 Please read and follow the query construction guide and database schema provided below.
@@ -993,6 +1073,13 @@ Return ONLY the SQL WHERE clause. Nothing else.
            (generated_sql.startswith("'") and generated_sql.endswith("'")):
             generated_sql = generated_sql[1:-1]
         generated_sql = generated_sql.strip()
+        
+        # CRITICAL: Remove "WHERE" keyword if present at the beginning (case-insensitive)
+        # The API expects only the WHERE clause conditions, not the keyword itself
+        import re
+        where_regex = re.compile(r'^\s*WHERE\s+', re.IGNORECASE)
+        if where_regex.match(generated_sql):
+            generated_sql = where_regex.sub('', generated_sql).strip()
         
         # Minimal validation - just ensure we got something back
         # Don't validate SQL syntax here - let the actual database query validate it

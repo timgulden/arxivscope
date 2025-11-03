@@ -111,6 +111,15 @@ def validate_papers_endpoint_enter(ctx: Dict[str, Any]) -> Dict[str, Any]:
         ctx['offset'] = offset
         ctx['sql_filter'] = sql_filter
         ctx['embedding_type'] = embedding_type
+        
+        # CRITICAL: Add enrichment field to fields list if symbolization is active
+        # Check if enrichment_field is provided in context (from symbolization processing)
+        enrichment_field_from_ctx = ctx.get('enrichment_field_column_name')
+        if enrichment_field_from_ctx and enrichment_field_from_ctx not in fields:
+            fields.append(enrichment_field_from_ctx)
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"✅ Added enrichment field '{enrichment_field_from_ctx}' to fields list: {fields}")
+        
         ctx['fields'] = fields
         ctx['similarity_threshold'] = similarity_threshold
         ctx['search_text'] = search_text

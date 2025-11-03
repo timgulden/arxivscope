@@ -54,6 +54,35 @@ export interface EnrichmentState {
   source: string | null;
   table: string | null;
   field: string | null;
+  // Symbolization (from database table)
+  symbolizationId: number | null;
+  symbolizationColorMap: Record<string, string> | null; // Color map from selected symbolization
+  symbolizationField: string | null; // Enrichment field name from symbolization
+  // Cluster state: computing, visible, hidden
+  clusterComputing: boolean;
+  clustersVisible: boolean;
+  clusterData: ClusterData | null;
+  // Store the bbox used when clusters were computed (for static display)
+  clusterBbox: [number, number, number, number] | null;
+}
+
+/**
+ * Cluster Data - Voronoi polygons and annotations
+ */
+export interface ClusterData {
+  polygons: VoronoiPolygon[];
+  annotations: ClusterAnnotation[];
+}
+
+export interface VoronoiPolygon {
+  x: number[];
+  y: number[];
+}
+
+export interface ClusterAnnotation {
+  x: number;
+  y: number;
+  text: string;
 }
 
 /**

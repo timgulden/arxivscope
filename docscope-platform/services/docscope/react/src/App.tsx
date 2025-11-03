@@ -7,6 +7,7 @@ import { DateSlider } from './components/DateSlider';
 import { SemanticFilterModal } from './components/SemanticFilterModal';
 import { TopBarControls } from './components/TopBarControls';
 import { UniverseFilterModal } from './components/UniverseFilterModal';
+import { SymbolizationModal } from './components/SymbolizationModal';
 import { 
   createFetchRequest, 
   testQuery,
@@ -14,7 +15,21 @@ import {
   updateClusterCount, 
   updateViewLimit,
   parseClusterCount,
-  parseLimit
+  parseLimit,
+  generateSqlFromNaturalLanguage,
+  createDefaultLlmApiProvider,
+  computeClustersFrontend,
+  createClusterAnnotations,
+  getClusterSummaries,
+  createDefaultSummariesApiProvider,
+  setClusterComputing,
+  setClustersVisible,
+  hideClusters,
+  setSymbolization,
+  clearSymbolization,
+  getSymbolizations,
+  createDefaultSymbolizationApiProvider,
+  type Symbolization
 } from './logic';
 import './App.css';
 
@@ -23,9 +38,31 @@ function App() {
   const { fetchPapers, fetchMaxExtent } = useDataFetch(dispatch);
   const [semanticFilterOpen, setSemanticFilterOpen] = useState(false);
   const [universeFilterOpen, setUniverseFilterOpen] = useState(false);
-  // TODO: Add symbolization and sort state to proper state management
-  const [symbolizationActive, setSymbolizationActive] = useState(false);
+  const [symbolizationOpen, setSymbolizationOpen] = useState(false);
+  const [symbolizations, setSymbolizations] = useState<Symbolization[]>([]);
+  const [symbolizationsLoading, setSymbolizationsLoading] = useState(false);
+  // TODO: Add sort state to proper state management
   const [sortActive, setSortActive] = useState(false);
+
+  // Fetch available symbolizations on mount
+  useEffect(() => {
+    const loadSymbolizations = async () => {
+      setSymbolizationsLoading(true);
+      try {
+        const apiProvider = createDefaultSymbolizationApiProvider(
+          import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'
+        );
+        const results = await getSymbolizations(apiProvider);
+        setSymbolizations(results);
+      } catch (error) {
+        console.error('Error loading symbolizations:', error);
+      } finally {
+        setSymbolizationsLoading(false);
+      }
+    };
+
+    loadSymbolizations();
+  }, []);
 
   // Initial data load
   useEffect(() => {
@@ -78,17 +115,101 @@ function App() {
     dispatch({ type: 'ENRICHMENT_UPDATE', payload: newEnrichment });
   };
 
-  // Handle compute clusters button - uses pure functions from logic layer
+  // Handle compute clusters button - computes in frontend, fetches summaries from API
   const handleComputeClusters = async (clusterCount: number) => {
-    const newEnrichment = updateClusterCount(state.enrichment, clusterCount);
+    console.log('handleComputeClusters called with:', clusterCount);
+    console.log('Current papers count:', state.data.papers.length);
     
-    if (newEnrichment) {
+    try {
+      // Set computing state
+      let newEnrichment = setClusterComputing(state.enrichment, true);
+      dispatch({ type: 'ENRICHMENT_UPDATE', payload: newEnrichment });
+      console.log('Set computing state to true');
+      
+      // Get bbox - always use current view bounds or max extent
+      // bbox format: [x_min, y_min, x_max, y_max]
+      let bbox: [number, number, number, number];
+      
+      if (state.view.xRange && state.view.yRange) {
+        // Use current view ranges
+        bbox = [
+          state.view.xRange[0],  // x_min
+          state.view.yRange[0],  // y_min
+          state.view.xRange[1],  // x_max
+          state.view.yRange[1]   // y_max
+        ];
+        console.log('Using bbox from view ranges:', bbox);
+      } else if (state.data.maxExtent) {
+        // Use max extent (always available, even on startup)
+        bbox = [
+          state.data.maxExtent.xMin,
+          state.data.maxExtent.yMin,
+          state.data.maxExtent.xMax,
+          state.data.maxExtent.yMax
+        ];
+        console.log('Using bbox from max extent:', bbox);
+      } else {
+        // Fallback: calculate from papers if nothing else available
+        if (state.data.papers.length === 0) {
+          throw new Error('No papers available for clustering');
+        }
+        const xs = state.data.papers.map(p => p.doctrove_embedding_2d.x);
+        const ys = state.data.papers.map(p => p.doctrove_embedding_2d.y);
+        bbox = [
+          Math.min(...xs),
+          Math.min(...ys),
+          Math.max(...xs),
+          Math.max(...ys)
+        ];
+        console.log('Using bbox from papers extent:', bbox);
+      }
+      
+      // Compute clusters in frontend (KMeans + Voronoi)
+      console.log('Computing clusters in frontend with bbox:', bbox);
+      const { polygons, clusterCenters, titles } = computeClustersFrontend(
+        state.data.papers,
+        clusterCount,
+        bbox
+      );
+      console.log('Clustering successful, got:', polygons.length, 'polygons');
+      
+      // Fetch LLM summaries from API
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
+      console.log('Fetching LLM summaries from API');
+      const summariesProvider = createDefaultSummariesApiProvider(apiUrl);
+      let summaries: string[];
+      try {
+        summaries = await getClusterSummaries(titles, summariesProvider);
+        console.log('Got summaries from API:', summaries.length);
+      } catch (error) {
+        console.warn('Failed to get summaries from API, using fallback:', error);
+        summaries = Array(clusterCenters.length).fill('Summary unavailable.');
+      }
+      
+      // Create annotations from summaries
+      const annotations = createClusterAnnotations(clusterCenters, summaries);
+      
+      // Set clusters visible with data and bbox
+      const clusterData = { polygons, annotations };
+      newEnrichment = setClustersVisible(newEnrichment, clusterData, bbox);
+      dispatch({ type: 'ENRICHMENT_UPDATE', payload: newEnrichment });
+      console.log('Set clusters visible with data and bbox:', bbox);
+    } catch (error) {
+      console.error('Error computing clusters:', error);
+      console.error('Error details:', error instanceof Error ? error.message : String(error));
+      // Reset computing state on error
+      const newEnrichment = setClusterComputing(state.enrichment, false);
       dispatch({ type: 'ENRICHMENT_UPDATE', payload: newEnrichment });
       
-      // Trigger data refetch with updated enrichment
-      const fetchRequest = createFetchRequest(state.view, state.filter, newEnrichment);
-      await fetchPapers(fetchRequest);
+      // Show error to user
+      alert(`Error computing clusters: ${error instanceof Error ? error.message : String(error)}`);
     }
+  };
+
+  // Handle hide clusters button - uses pure function from logic layer
+  const handleHideClusters = () => {
+    const newEnrichment = hideClusters(state.enrichment);
+    dispatch({ type: 'ENRICHMENT_UPDATE', payload: newEnrichment });
   };
 
   // Handle cluster count input change - uses pure parsing function
@@ -159,6 +280,90 @@ function App() {
     await fetchPapers(fetchRequest);
   };
 
+  // Handle symbolization application - uses pure functions from logic layer
+  const handleSymbolizationApply = async (symbolizationId: number | null) => {
+    let updatedEnrichment: EnrichmentState;
+    
+    if (symbolizationId !== null) {
+      // Find the selected symbolization to get color_map and enrichment_field
+      const selectedSymbolization = symbolizations.find(s => s.id === symbolizationId);
+      if (selectedSymbolization) {
+        updatedEnrichment = setSymbolization(
+          state.enrichment,
+          symbolizationId,
+          selectedSymbolization.color_map,
+          selectedSymbolization.enrichment_field
+        );
+      } else {
+        // Fallback if symbolization not found
+        updatedEnrichment = setSymbolization(state.enrichment, symbolizationId);
+      }
+    } else {
+      updatedEnrichment = clearSymbolization(state.enrichment);
+    }
+    
+    dispatch({
+      type: 'ENRICHMENT_UPDATE',
+      payload: updatedEnrichment,
+    });
+
+    // Trigger data fetch with updated enrichment
+    const fetchRequest = createFetchRequest(state.view, state.filter, updatedEnrichment);
+    await fetchPapers(fetchRequest);
+  };
+
+  // Handle LLM SQL generation - uses pure functions from logic layer
+  const handleGenerateSql = async (naturalLanguage: string) => {
+    // Load documentation files
+    let guideContent = '';
+    let schemaContent = '';
+
+    try {
+      const guideResponse = await fetch('/docs/UNIVERSE_FILTER_GUIDE.md');
+      if (guideResponse.ok) {
+        guideContent = await guideResponse.text();
+      } else {
+        throw new Error('Failed to load UNIVERSE_FILTER_GUIDE.md');
+      }
+
+      const schemaResponse = await fetch('/docs/DATABASE_SCHEMA.md');
+      if (schemaResponse.ok) {
+        schemaContent = await schemaResponse.text();
+      } else {
+        throw new Error('Failed to load DATABASE_SCHEMA.md');
+      }
+    } catch (error) {
+      throw new Error(
+        error instanceof Error 
+          ? `Failed to load documentation: ${error.message}` 
+          : 'Failed to load documentation files'
+      );
+    }
+
+    // Create API provider (uses backend /api/generate-sql endpoint)
+    const apiProvider = createDefaultLlmApiProvider(import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001');
+
+    // Use pure function from logic layer
+    return generateSqlFromNaturalLanguage(naturalLanguage, guideContent, schemaContent, apiProvider);
+  };
+
+  // Handle View Schema - loads schema document
+  const handleViewSchema = async (): Promise<string> => {
+    try {
+      const response = await fetch('/docs/DATABASE_SCHEMA.md');
+      if (!response.ok) {
+        throw new Error(`Failed to load DATABASE_SCHEMA.md: ${response.status}`);
+      }
+      return await response.text();
+    } catch (error) {
+      throw new Error(
+        error instanceof Error 
+          ? `Failed to load schema: ${error.message}` 
+          : 'Failed to load schema document'
+      );
+    }
+  };
+
   return (
     <div style={{ 
       width: '100vw', 
@@ -189,19 +394,17 @@ function App() {
           onCountClick={() => {/* TODO: Implement count display toggle */}}
           onClusteringToggle={handleClusteringToggle}
           onComputeClusters={handleComputeClusters}
+          onHideClusters={handleHideClusters}
           onClusterCountChange={handleClusterCountChange}
           onLimitChange={handleLimitChange}
           onUniverseFilterOpen={() => setUniverseFilterOpen(true)}
           onSemanticFilterOpen={() => setSemanticFilterOpen(true)}
-          onSymbolizationOpen={() => {
-            setSymbolizationActive(!symbolizationActive);
-            // TODO: Implement symbolization modal
-          }}
+          onSymbolizationOpen={() => setSymbolizationOpen(true)}
           onSortClick={() => {
             setSortActive(!sortActive);
             // TODO: Implement sort functionality
           }}
-          symbolizationActive={symbolizationActive}
+          symbolizationActive={state.enrichment.symbolizationId !== null}
           sortActive={sortActive}
         />
       </header>
@@ -252,6 +455,19 @@ function App() {
           onClose={() => setUniverseFilterOpen(false)}
           onTestQuery={handleTestUniverseQuery}
           onApply={handleUniverseFilterApply}
+          onGenerateSql={handleGenerateSql}
+          onViewSchema={handleViewSchema}
+        />
+      )}
+
+      {/* Symbolization Modal */}
+      {symbolizationOpen && (
+        <SymbolizationModal
+          state={state}
+          symbolizations={symbolizations}
+          loading={symbolizationsLoading}
+          onClose={() => setSymbolizationOpen(false)}
+          onApply={handleSymbolizationApply}
         />
       )}
     </div>

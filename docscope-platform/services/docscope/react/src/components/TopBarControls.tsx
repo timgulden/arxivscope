@@ -22,7 +22,9 @@ interface TopBarControlsProps {
   /** Callback when clustering toggle changes */
   onClusteringToggle: () => void;
   /** Callback when compute clusters button clicked - receives cluster count */
-  onComputeClusters: (clusterCount: number) => void;
+  onComputeClusters: (clusterCount: number) => Promise<void>;
+  /** Callback when hide clusters button clicked */
+  onHideClusters: () => void;
   /** Callback when cluster count input changes (while typing) */
   onClusterCountChange: (value: string) => void;
   /** Callback when limit input changes */
@@ -50,6 +52,7 @@ export function TopBarControls({
   onCountClick,
   onClusteringToggle,
   onComputeClusters,
+  onHideClusters,
   onClusterCountChange,
   onLimitChange,
   onUniverseFilterOpen,
@@ -220,20 +223,67 @@ export function TopBarControls({
         gap: '0',
         marginLeft: 'auto',
       }}>
-        {/* Compute Clusters Button */}
+        {/* Compute Clusters Button - Three states: Compute Clusters (green), Computing... (gray), Hide Clusters (blue) */}
         <div style={controlGroupStyle}>
           <button
             onClick={() => {
-              const num = parseInt(clusterCountInput, 10);
-              if (!isNaN(num) && num >= 2 && num <= 99) {
-                onComputeClusters(num);
+              console.log('Compute Clusters button clicked');
+              console.log('clustersVisible:', state.enrichment.clustersVisible);
+              console.log('clusterCountInput:', clusterCountInput);
+              
+              if (state.enrichment.clustersVisible) {
+                // Hide clusters if visible
+                console.log('Hiding clusters');
+                onHideClusters();
+              } else {
+                // Compute clusters if not visible
+                const num = parseInt(clusterCountInput, 10);
+                console.log('Parsed cluster count:', num);
+                if (!isNaN(num) && num >= 2 && num <= 99) {
+                  console.log('Calling onComputeClusters with', num);
+                  onComputeClusters(num);
+                } else {
+                  console.warn('Invalid cluster count:', num, 'from input:', clusterCountInput);
+                  alert(`Invalid cluster count: ${clusterCountInput}. Please enter a number between 2 and 99.`);
+                }
               }
             }}
-            style={getButtonStyle(state.enrichment.useClustering)}
-            onMouseOver={(e) => e.currentTarget.style.backgroundColor = getButtonHoverColor(state.enrichment.useClustering)}
-            onMouseOut={(e) => e.currentTarget.style.backgroundColor = getButtonStyle(state.enrichment.useClustering).backgroundColor}
+            disabled={state.enrichment.clusterComputing}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: state.enrichment.clusterComputing 
+                ? '#7f8c8d'  // Gray when computing
+                : state.enrichment.clustersVisible 
+                  ? '#3498db'  // Blue when visible (Hide Clusters)
+                  : '#27ae60',  // Green when not visible (Compute Clusters)
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: state.enrichment.clusterComputing ? 'not-allowed' : 'pointer',
+              fontSize: '14px',
+              transition: 'background-color 0.2s',
+              opacity: state.enrichment.clusterComputing ? 0.6 : 1,
+            }}
+            onMouseOver={(e) => {
+              if (!state.enrichment.clusterComputing) {
+                e.currentTarget.style.backgroundColor = state.enrichment.clustersVisible 
+                  ? '#2980b9'  // Darker blue on hover
+                  : '#229954';  // Darker green on hover
+              }
+            }}
+            onMouseOut={(e) => {
+              if (!state.enrichment.clusterComputing) {
+                e.currentTarget.style.backgroundColor = state.enrichment.clustersVisible 
+                  ? '#3498db' 
+                  : '#27ae60';
+              }
+            }}
           >
-            Compute Clusters
+            {state.enrichment.clusterComputing 
+              ? 'Computing...' 
+              : state.enrichment.clustersVisible 
+                ? 'Hide Clusters' 
+                : 'Compute Clusters'}
           </button>
         </div>
 

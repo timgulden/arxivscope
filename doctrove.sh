@@ -10,14 +10,19 @@ API_SESSION="doctrove_api"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 API_DIR="${SCRIPT_DIR}/doctrove-api"
 VENV_DIR="${SCRIPT_DIR}/venv"
-API_CMD="source ${VENV_DIR}/bin/activate && python api.py"
+# Use system Python with venv site-packages due to venv Python binary corruption
+# The venv's Python binary has broken library paths, so we use /usr/bin/python3
+# with the venv's site-packages in PYTHONPATH instead
+VENV_SITE_PACKAGES="${VENV_DIR}/lib/python3.9/site-packages"
+API_CMD="cd ${API_DIR} && PYTHONPATH=${VENV_SITE_PACKAGES}:\$PYTHONPATH /usr/bin/python3 api.py"
 API_PORT="${NEW_API_PORT:-${DOCTROVE_API_PORT:-5001}}"
 
 EMB_SESSION="enrichment_embeddings"
 EMB2D_SESSION="embedding_2d"
 ENRICH_DIR="${SCRIPT_DIR}/embedding-enrichment"
-EMB_CMD="source ${VENV_DIR}/bin/activate && python event_listener.py"
-EMB2D_CMD="source ${VENV_DIR}/bin/activate && python queue_2d_worker.py --batch-size 1000 --sleep 5"
+# Use system Python with venv site-packages for enrichment workers too
+EMB_CMD="cd ${ENRICH_DIR} && PYTHONPATH=${VENV_SITE_PACKAGES}:\$PYTHONPATH /usr/bin/python3 event_listener.py"
+EMB2D_CMD="cd ${ENRICH_DIR} && PYTHONPATH=${VENV_SITE_PACKAGES}:\$PYTHONPATH /usr/bin/python3 queue_2d_worker.py --batch-size 1000 --sleep 5"
 
 print() { echo -e "$1"; }
 

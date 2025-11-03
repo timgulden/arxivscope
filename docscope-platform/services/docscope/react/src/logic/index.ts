@@ -24,4 +24,21 @@ export * from './visualization/visualization';
 
 // Clustering
 export * from './clustering/clustering';
+export * from './clustering/clustering-frontend';
+export * from './clustering/cluster-summaries-api';
+
+// Cluster state management (re-export from state-store)
+export { 
+  setClusterComputing, 
+  setClustersVisible, 
+  hideClusters,
+  setSymbolization,
+  clearSymbolization
+} from './core/state-store';
+
+// LLM SQL Generation
+export * from './llm/sql-generation';
+
+// Symbolization API
+export * from './api/symbolization-api';
 

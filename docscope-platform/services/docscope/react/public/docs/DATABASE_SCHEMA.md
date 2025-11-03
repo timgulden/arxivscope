@@ -85,17 +85,21 @@ The following metadata tables provide additional fields specific to each source.
 | `randpub_title` | TEXT | Publication title (enrichment field) | "Machine Learning Applications in Education" |
 | `randpub_abstract` | TEXT | Publication abstract (enrichment field) | "This report examines..." |
 
-**Document Type Values:**
-- `'RR'` - Research Report (most common)
-- `'B'` - Brief
-- `'CB'` - Corporate Brief
-- `'PE'` - Policy Essay
-- `'OPE'` - Occasional Paper
-- `'SRA'` - Strategic RAND Assessment
-- `'N'` - Note
-- `'P'` - Paper
-- `'RCC'` - RAND Corporation Commentary
-- `'RAS'` - RAND Assessment
+**Document Type Values (`randpub_document_type`) - All Possible Values:**
+| Value | Description |
+|-------|-------------|
+| `'RR'` | Research Report (most common) |
+| `'B'` | Brief |
+| `'CB'` | Corporate Brief |
+| `'PE'` | Policy Essay |
+| `'OPE'` | Occasional Paper |
+| `'SRA'` | Strategic RAND Assessment |
+| `'N'` | Note |
+| `'P'` | Paper |
+| `'RCC'` | RAND Corporation Commentary |
+| `'RAS'` | RAND Assessment |
+
+**⚠️ Use exact values** (case-sensitive, uppercase letters).
 
 **Example Queries:**
 ```sql
@@ -226,7 +230,7 @@ doctrove_source = 'arxiv' AND arxivscope_category = 'cs.AI'
 |------------|------|-------------|----------------|
 | `country_institution` | TEXT | Primary institution affiliation (unified across sources) | "MIT", "Stanford University", "RAND Corporation" |
 | `country_name` | TEXT | Full country name (unified across sources) | "United States", "China", "United Kingdom", "Germany" |
-| `country_uschina` | TEXT | US/China/Other/Unknown classification (unified across sources) | "United States", "China", "Rest of the World", "Unknown" |
+| `country_uschina` | TEXT | US/China/Other/Unknown classification (unified across sources) | "United States", "China", "Other", "Unknown" |
 | `country_code` | TEXT | ISO 3166-1 alpha-2 country code (unified across sources) | "US", "CN", "GB", "DE" |
 | `country_method` | TEXT | Method used for enrichment | "hardcoded_rand", "openalex_api", "llm_inference" |
 
@@ -248,11 +252,49 @@ doctrove_source = 'arxiv' AND country_uschina = 'United States'
 country_institution LIKE '%MIT%'
 ```
 
-**Country Classification (`country_uschina`):**
-- `"United States"` - US institutions
-- `"China"` - Chinese institutions
-- `"Rest of the World"` - All other countries
-- `"Unknown"` - Papers without country data
+**Country Classification (`country_uschina`) - All Possible Values:**
+The database contains exactly **4 values** for this field (as of current data):
+
+| Value | Count | Description |
+|-------|-------|-------------|
+| `"Other"` | ~431,583 papers | All countries other than US and China |
+| `"United States"` | ~224,917 papers | US institutions |
+| `"China"` | ~44,586 papers | Chinese institutions |
+| `"Unknown"` | ~34,930 papers | Papers without country data |
+
+**⚠️ CRITICAL:** Always use **exact values** (case-sensitive). Common mistakes:
+- ❌ `'US'` (should be `'United States'`)
+- ❌ `'Rest of the World'` (should be `'Other'`)
+- ✅ `'United States'`, `'China'`, `'Other'`, `'Unknown'`
+
+**Country Name (`country_name`) - Sample Values:**
+The database contains **many country names**. Most common values (top 20):
+
+| Value | Count | 
+|-------|-------|
+| `"United States"` | ~224,917 papers |
+| `"Germany"` | ~61,216 papers |
+| `"United Kingdom"` | ~45,003 papers |
+| `"China"` | ~44,586 papers |
+| `"France"` | ~38,920 papers |
+| `"Italy"` | ~37,417 papers |
+| `"Japan"` | ~27,107 papers |
+| `"India"` | ~22,026 papers |
+| `"Spain"` | ~21,387 papers |
+| `"Russia"` | ~18,657 papers |
+| `"Canada"` | ~15,369 papers |
+| `"Brazil"` | ~13,313 papers |
+| `"Switzerland"` | ~13,023 papers |
+| `"Australia"` | ~12,322 papers |
+| `"Netherlands"` | ~12,256 papers |
+| `"Poland"` | ~9,725 papers |
+| `"Israel"` | ~7,665 papers |
+| `"South Korea"` | ~7,479 papers |
+| `"Sweden"` | ~6,992 papers |
+| `"Austria"` | ~6,819 papers |
+| *... and many more* | |
+
+**⚠️ Important:** Country names are **full names** (e.g., "United States" not "US", "United Kingdom" not "UK").
 
 ---
 
@@ -347,7 +389,9 @@ doctrove_title LIKE '%machine learning%' AND doctrove_source = 'arxiv'
 ### Advanced Query Patterns
 ```sql
 -- Multiple countries from unified enrichment
-country_uschina IN ('United States', 'China')
+country_uschina IN ('United States', 'China', 'Other')
+
+-- Note: Use exact values 'United States', 'China', 'Other', 'Unknown' (not 'US' or 'Rest of the World')
 
 -- Papers from multiple sources with country
 (doctrove_source = 'arxiv' OR doctrove_source = 'randpub') AND country_uschina = 'United States'
@@ -363,8 +407,10 @@ doctrove_source = 'arxiv' AND
 
 -- Complex country and topic combination
 doctrove_source = 'arxiv' AND 
-    country_uschina = 'Rest of the World' AND
+    country_uschina = 'Other' AND
     (doctrove_title LIKE '%deep learning%' OR doctrove_abstract LIKE '%neural networks%')
+
+-- Note: Use 'Other' not 'Rest of the World' for non-US/China countries
 
 -- RAND by program and document type
 doctrove_source = 'randpub' AND 
