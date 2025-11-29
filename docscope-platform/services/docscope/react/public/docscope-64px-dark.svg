@@ -1,0 +1,17 @@
+<svg width="140" height="80" viewBox="0 0 140 80" xmlns="http://www.w3.org/2000/svg">
+  <rect x="15" y="23" width="28" height="11" rx="1.5" 
+        fill="none" stroke="#ffffff" stroke-width="2"/>
+  <ellipse cx="15" cy="28.5" rx="2" ry="6" fill="none" stroke="#ffffff" stroke-width="2"/>
+  <rect x="43" y="21" width="35" height="15" rx="1.5" 
+        fill="none" stroke="#ffffff" stroke-width="2"/>
+  <path d="M 43 21 Q 43 28.5, 43 36" fill="none" stroke="#ffffff" stroke-width="2"/>
+  <rect x="78" y="18" width="42" height="21" rx="1.5" 
+        fill="none" stroke="#ffffff" stroke-width="2"/>
+  <path d="M 78 18 Q 78 28.5, 78 39" fill="none" stroke="#ffffff" stroke-width="2"/>
+  <ellipse cx="120" cy="28.5" rx="3" ry="10.5" fill="none" stroke="#ffffff" stroke-width="2"/>
+  <ellipse cx="120" cy="28.5" rx="2" ry="8" fill="none" stroke="#ffffff" stroke-width="1.2"/>
+  <text x="70" y="58" font-family="system-ui, -apple-system, sans-serif" 
+        font-size="18" font-weight="600" fill="#ffffff" 
+        text-anchor="middle" letter-spacing="0.5">DocScope</text>
+</svg>
+

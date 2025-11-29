@@ -397,45 +397,43 @@ function App() {
         fontSize: '14px',
         position: 'relative'
       }}>
-        {/* Left Section: DocScope title */}
-        <h1 style={{ margin: 0, fontSize: '18px' }}>DocScope</h1>
+        {/* Left Section: DocScope logo with text */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '0',
+          justifyContent: 'flex-start',
+          marginTop: '-8px'
+        }}>
+          <img 
+            src="/docscope-32px-dark-compact.svg" 
+            alt="DocScope Logo" 
+            style={{
+              width: '48px',
+              height: '36px',
+              display: 'block',
+              marginBottom: '-1px'
+            }}
+          />
+          <span style={{
+            fontSize: '15px',
+            color: '#ecf0f1',
+            fontWeight: '600',
+            letterSpacing: '0.5px',
+            lineHeight: '1',
+            marginTop: '-1px'
+          }}>DocScope</span>
+        </div>
         
         {/* Top Bar Controls: Left, Center (Universe/Semantic/Symbolization cluster), Right */}
         <TopBarControls
           state={state}
-          onCountClick={async () => {
-            try {
-              setCountLoading(true);
-              // Build params similar to fetchPapers but omit bbox
-              const fetchRequest = createFetchRequest(state.view, state.filter, state.enrichment);
-              const params: Record<string, any> = {};
-              if (fetchRequest.sqlFilter) params.sql_filter = fetchRequest.sqlFilter;
-              if (fetchRequest.searchText) {
-                params.search_text = fetchRequest.searchText;
-                params.similarity_threshold = fetchRequest.similarityThreshold;
-              }
-              if (fetchRequest.enrichmentParams) {
-                const ep = fetchRequest.enrichmentParams;
-                if (ep.symbolization_id) params.symbolization_id = ep.symbolization_id;
-                if (ep.enrichment_source) params.enrichment_source = ep.enrichment_source;
-                if (ep.enrichment_table) params.enrichment_table = ep.enrichment_table;
-                if (ep.enrichment_field) params.enrichment_field = ep.enrichment_field;
-              }
-              const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
-              // Use unambiguous alias to avoid dynamic route conflicts on the API
-              const url = `${apiBase}/api/paper-count`;
-              const query = new URLSearchParams(params).toString();
-              const resp = await fetch(`${url}?${query}`);
-              if (!resp.ok) throw new Error(`API error: ${resp.status}`);
-              const data = await resp.json();
-              setCountValue(typeof data.count === 'number' ? data.count : 0);
-            } catch (e) {
-              console.error('Count fetch failed:', e);
-              setCountValue(null);
-              alert('Failed to get count. See console for details.');
-            } finally {
-              setCountLoading(false);
-            }
+          onCountClick={() => {
+            // Count functionality temporarily disabled - TODO: Fix count endpoint performance/accuracy issues
+            // The count endpoint is returning incorrect counts (10x too high) and taking over a minute
+            // Need to investigate CTE approach and query optimization
+            console.log('Count button disabled - functionality needs fixes');
           }}
           onClusteringToggle={handleClusteringToggle}
           onComputeClusters={handleComputeClusters}
